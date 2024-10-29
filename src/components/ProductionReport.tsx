@@ -3,7 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { productionData } from "@/lib/data";
-import { format } from "date-fns";
+import { parseDateString, tryParseDateString } from "@/lib/utils";
+import { endOfDay, format, isValid, startOfDay } from "date-fns";
 import { Download, Printer } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -21,8 +22,10 @@ import {
 export function ProductionReport() {
     const searchParams = useSearchParams();
     const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
-    const [startDate, setStartDate] = useState("2024-10-27");
-    const [endDate, setEndDate] = useState("2024-10-29");
+    const [startDate, setStartDate] = useState(
+        startOfDay(new Date("10-27-2024"))
+    );
+    const [endDate, setEndDate] = useState(endOfDay(new Date("10-29-2024")));
     const [isGenerating, setIsGenerating] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
 
@@ -36,10 +39,18 @@ export function ProductionReport() {
             setSelectedDevices(devicesParam.split(","));
         }
         if (startParam) {
-            setStartDate(startParam);
+            const parsedDate = tryParseDateString(startParam);
+            if (parsedDate) {
+                setStartDate(startOfDay(parsedDate));
+            }
         }
+
         if (endParam) {
-            setEndDate(endParam);
+            console.log("endParam", endParam);
+            const parsedDate = tryParseDateString(endParam);
+            if (parsedDate) {
+                setEndDate(endOfDay(parsedDate));
+            }
         }
         setIsLoaded(true);
     }, [searchParams]);
@@ -59,12 +70,17 @@ export function ProductionReport() {
                     selectedDevices.includes(device)
             )
             .map((device) => {
-                const deviceData = productionData.filter(
-                    (item) =>
+                const deviceData = productionData.filter((item) => {
+                    const itemStartTime = parseDateString(item.start_time);
+                    const itemEndTime = parseDateString(item.end_time);
+                    return (
                         item.deviceKey === device &&
-                        new Date(item.start_time) >= new Date(startDate) &&
-                        new Date(item.end_time) <= new Date(endDate)
-                );
+                        isValid(itemStartTime) &&
+                        isValid(itemEndTime) &&
+                        itemStartTime >= startDate &&
+                        itemEndTime <= endDate
+                    );
+                });
 
                 const summary = deviceData.reduce((acc, curr) => {
                     const state = curr.process_state_display_name;
@@ -80,6 +96,19 @@ export function ProductionReport() {
                 return { device, summary };
             });
     }, [devices, selectedDevices, startDate, endDate, isLoaded]);
+
+    const handleDateChange = (date: string, isStart: boolean) => {
+        console.log("date", date);
+
+        const parsedDate = parseDateString(date);
+        if (parsedDate) {
+            if (isStart) {
+                setStartDate(startOfDay(parsedDate));
+            } else {
+                setEndDate(endOfDay(parsedDate));
+            }
+        }
+    };
 
     // Transform data for a single device's chart
     const getDeviceChartData = (
@@ -106,8 +135,8 @@ export function ProductionReport() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    startDate,
-                    endDate,
+                    startDate: format(startDate, "yyyy-MM-dd"),
+                    endDate: format(endDate, "yyyy-MM-dd"),
                     selectedDevices,
                 }),
             });
@@ -121,7 +150,10 @@ export function ProductionReport() {
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
-            link.download = `production-report-${startDate}-to-${endDate}.pdf`;
+            link.download = `production-report-${format(
+                startDate,
+                "yyyy-MM-dd"
+            )}-to-${format(endDate, "yyyy-MM-dd")}.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -157,9 +189,9 @@ export function ProductionReport() {
                                 </label>
                                 <input
                                     type="date"
-                                    value={startDate}
+                                    value={format(startDate, "yyyy-MM-dd")}
                                     onChange={(e) =>
-                                        setStartDate(e.target.value)
+                                        handleDateChange(e.target.value, true)
                                     }
                                     className="w-full px-3 py-2 border rounded-md"
                                 />
@@ -170,8 +202,10 @@ export function ProductionReport() {
                                 </label>
                                 <input
                                     type="date"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
+                                    value={format(endDate, "yyyy-MM-dd")}
+                                    onChange={(e) =>
+                                        handleDateChange(e.target.value, false)
+                                    }
                                     className="w-full px-3 py-2 border rounded-md"
                                 />
                             </div>
@@ -235,15 +269,8 @@ export function ProductionReport() {
                                             {device} Production Report
                                         </span>
                                         <span className="text-sm text-muted-foreground">
-                                            {format(
-                                                new Date(startDate),
-                                                "MMM d, yyyy"
-                                            )}{" "}
-                                            -{" "}
-                                            {format(
-                                                new Date(endDate),
-                                                "MMM d, yyyy"
-                                            )}
+                                            {format(startDate, "MMM d, yyyy")} -{" "}
+                                            {format(endDate, "MMM d, yyyy")}
                                         </span>
                                     </div>
                                 </CardTitle>
@@ -270,7 +297,7 @@ export function ProductionReport() {
                                         </thead>
                                         <tbody>
                                             {Object.entries(summary).map(
-                                                ([state, data], i) => (
+                                                ([state, data]) => (
                                                     <tr
                                                         key={state}
                                                         className="even:bg-muted/20 print:even:bg-gray-100"
