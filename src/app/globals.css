@@ -131,5 +131,11 @@
         .print\:p-8 {
             padding: 2rem !important;
         }
+
+        /* Force SVG colors to print */
+        .recharts-surface {
+            print-color-adjust: exact !important;
+            -webkit-print-color-adjust: exact !important;
+        }
     }
 }

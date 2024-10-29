@@ -7,6 +7,16 @@ import { format } from "date-fns";
 import { Download, Printer } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import {
+    Bar,
+    CartesianGrid,
+    ComposedChart,
+    Legend,
+    Line,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from "recharts";
 
 export function ProductionReport() {
     const searchParams = useSearchParams();
@@ -16,11 +26,20 @@ export function ProductionReport() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Initialize devices from URL parameters
+    // Initialize from URL parameters
     useEffect(() => {
         const devicesParam = searchParams.get("devices");
+        const startParam = searchParams.get("startDate");
+        const endParam = searchParams.get("endDate");
+
         if (devicesParam) {
             setSelectedDevices(devicesParam.split(","));
+        }
+        if (startParam) {
+            setStartDate(startParam);
+        }
+        if (endParam) {
+            setEndDate(endParam);
         }
         setIsLoaded(true);
     }, [searchParams]);
@@ -61,6 +80,21 @@ export function ProductionReport() {
                 return { device, summary };
             });
     }, [devices, selectedDevices, startDate, endDate, isLoaded]);
+
+    // Transform data for a single device's chart
+    const getDeviceChartData = (
+        summary: Record<
+            string,
+            { good: number; reject: number; duration: number }
+        >
+    ) => {
+        return Object.entries(summary).map(([state, data]) => ({
+            state,
+            good: Math.round(data.good),
+            reject: Math.round(data.reject),
+            duration: Number((data.duration / 3600).toFixed(2)), // Convert to hours
+        }));
+    };
 
     const handleDownloadPDF = async () => {
         try {
@@ -214,54 +248,133 @@ export function ProductionReport() {
                                     </div>
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="pt-6">
-                                <table className="w-full border-collapse">
-                                    <thead>
-                                        <tr className="bg-muted/50">
-                                            <th className="border px-4 py-2 text-left font-medium">
-                                                Process State
-                                            </th>
-                                            <th className="border px-4 py-2 text-right font-medium">
-                                                Good Count
-                                            </th>
-                                            <th className="border px-4 py-2 text-right font-medium">
-                                                Reject Count
-                                            </th>
-                                            <th className="border px-4 py-2 text-right font-medium">
-                                                Duration (hrs)
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {Object.entries(summary).map(
-                                            ([state, data], i) => (
-                                                <tr
-                                                    key={state}
-                                                    className="even:bg-muted/20 print:even:bg-gray-100"
-                                                >
-                                                    <td className="border px-4 py-2">
-                                                        {state}
-                                                    </td>
-                                                    <td className="border px-4 py-2 text-right">
-                                                        {Math.round(
-                                                            data.good
-                                                        ).toLocaleString()}
-                                                    </td>
-                                                    <td className="border px-4 py-2 text-right">
-                                                        {Math.round(
-                                                            data.reject
-                                                        ).toLocaleString()}
-                                                    </td>
-                                                    <td className="border px-4 py-2 text-right">
-                                                        {(
-                                                            data.duration / 3600
-                                                        ).toFixed(2)}
-                                                    </td>
-                                                </tr>
-                                            )
-                                        )}
-                                    </tbody>
-                                </table>
+                            <CardContent className="pt-6 flex flex-col gap-6">
+                                {/* Table Section */}
+                                <div>
+                                    <table className="w-full border-collapse">
+                                        <thead>
+                                            <tr className="bg-muted/50">
+                                                <th className="border px-4 py-2 text-left font-medium">
+                                                    Process State
+                                                </th>
+                                                <th className="border px-4 py-2 text-right font-medium">
+                                                    Good Count
+                                                </th>
+                                                <th className="border px-4 py-2 text-right font-medium">
+                                                    Reject Count
+                                                </th>
+                                                <th className="border px-4 py-2 text-right font-medium">
+                                                    Duration (hrs)
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {Object.entries(summary).map(
+                                                ([state, data], i) => (
+                                                    <tr
+                                                        key={state}
+                                                        className="even:bg-muted/20 print:even:bg-gray-100"
+                                                    >
+                                                        <td className="border px-4 py-2">
+                                                            {state}
+                                                        </td>
+                                                        <td className="border px-4 py-2 text-right">
+                                                            {Math.round(
+                                                                data.good
+                                                            ).toLocaleString()}
+                                                        </td>
+                                                        <td className="border px-4 py-2 text-right">
+                                                            {Math.round(
+                                                                data.reject
+                                                            ).toLocaleString()}
+                                                        </td>
+                                                        <td className="border px-4 py-2 text-right">
+                                                            {(
+                                                                data.duration /
+                                                                3600
+                                                            ).toFixed(2)}
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Chart Section */}
+                                <div className="mt-6">
+                                    <h3 className="text-lg font-semibold mb-4">
+                                        Production Overview
+                                    </h3>
+                                    <ComposedChart
+                                        width={800}
+                                        height={400}
+                                        data={getDeviceChartData(summary)}
+                                        margin={{
+                                            top: 20,
+                                            right: 80, // Extra space for right y-axis
+                                            bottom: 80, // Extra space for rotated x-axis labels
+                                            left: 80, // Extra space for left y-axis
+                                        }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis
+                                            dataKey="state"
+                                            angle={-45}
+                                            textAnchor="end"
+                                            height={80}
+                                            interval={0}
+                                        />
+                                        <YAxis
+                                            yAxisId="left"
+                                            orientation="left"
+                                            label={{
+                                                value: "Count",
+                                                angle: -90,
+                                                position: "insideLeft",
+                                                style: { textAnchor: "middle" },
+                                            }}
+                                        />
+                                        <YAxis
+                                            yAxisId="right"
+                                            orientation="right"
+                                            label={{
+                                                value: "Duration (hours)",
+                                                angle: 90,
+                                                position: "insideRight",
+                                                style: { textAnchor: "middle" },
+                                            }}
+                                        />
+                                        <Tooltip />
+                                        <Legend
+                                            verticalAlign="top"
+                                            height={36}
+                                        />
+                                        <Bar
+                                            yAxisId="left"
+                                            dataKey="good"
+                                            fill="#4ade80"
+                                            name="Good Count"
+                                            stackId="stack"
+                                        />
+                                        <Bar
+                                            yAxisId="left"
+                                            dataKey="reject"
+                                            fill="#f87171"
+                                            name="Reject Count"
+                                            stackId="stack"
+                                        />
+                                        <Line
+                                            yAxisId="right"
+                                            type="monotone"
+                                            dataKey="duration"
+                                            stroke="#6366f1"
+                                            strokeWidth={2}
+                                            name="Duration"
+                                            dot={{ fill: "#6366f1" }}
+                                        />
+                                    </ComposedChart>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>

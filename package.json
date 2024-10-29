@@ -19,6 +19,7 @@
         "puppeteer": "^23.6.1",
         "react": "19.0.0-rc-02c0e824-20241028",
         "react-dom": "19.0.0-rc-02c0e824-20241028",
+        "recharts": "^2.13.0-alpha.5",
         "tailwind-merge": "^2.5.4",
         "tailwindcss-animate": "^1.0.7"
     },
@@ -34,6 +35,10 @@
     },
     "overrides": {
         "@radix-ui/react-icons": {
+            "react": "19.0.0-rc-02c0e824-20241028",
+            "react-dom": "19.0.0-rc-02c0e824-20241028"
+        },
+        "recharts": {
             "react": "19.0.0-rc-02c0e824-20241028",
             "react-dom": "19.0.0-rc-02c0e824-20241028"
         }
