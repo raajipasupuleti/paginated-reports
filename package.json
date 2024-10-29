@@ -16,6 +16,7 @@
         "date-fns": "^4.1.0",
         "lucide-react": "^0.454.0",
         "next": "15.0.2",
+        "puppeteer": "^23.6.1",
         "react": "19.0.0-rc-02c0e824-20241028",
         "react-dom": "19.0.0-rc-02c0e824-20241028",
         "tailwind-merge": "^2.5.4",
@@ -33,8 +34,8 @@
     },
     "overrides": {
         "@radix-ui/react-icons": {
-            "react": "19.0.0-rc-69d4b800-20241021",
-            "react-dom": "19.0.0-rc-69d4b800-20241021"
+            "react": "19.0.0-rc-02c0e824-20241028",
+            "react-dom": "19.0.0-rc-02c0e824-20241028"
         }
     }
 }

@@ -4,12 +4,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { productionData } from "@/lib/data";
 import { format } from "date-fns";
-import { useMemo, useState } from "react";
+import { Download, Printer } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 export function ProductionReport() {
+    const searchParams = useSearchParams();
     const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
     const [startDate, setStartDate] = useState("2024-10-27");
     const [endDate, setEndDate] = useState("2024-10-29");
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    // Initialize devices from URL parameters
+    useEffect(() => {
+        const devicesParam = searchParams.get("devices");
+        if (devicesParam) {
+            setSelectedDevices(devicesParam.split(","));
+        }
+        setIsLoaded(true);
+    }, [searchParams]);
 
     const devices = useMemo(
         () => [...new Set(productionData.map((item) => item.deviceKey))],
@@ -17,6 +31,8 @@ export function ProductionReport() {
     );
 
     const reports = useMemo(() => {
+        if (!isLoaded) return [];
+
         return devices
             .filter(
                 (device) =>
@@ -44,7 +60,52 @@ export function ProductionReport() {
 
                 return { device, summary };
             });
-    }, [devices, selectedDevices, startDate, endDate]);
+    }, [devices, selectedDevices, startDate, endDate, isLoaded]);
+
+    const handleDownloadPDF = async () => {
+        try {
+            setIsGenerating(true);
+
+            const response = await fetch("/api/generate-pdf", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    startDate,
+                    endDate,
+                    selectedDevices,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.details || "Failed to generate PDF");
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `production-report-${startDate}-to-${endDate}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error: unknown) {
+            const errorMessage =
+                error instanceof Error ? error.message : "Unknown error";
+            console.error("Error downloading PDF:", error);
+            alert(`Failed to generate PDF: ${errorMessage}`);
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    // Only render content when loaded
+    if (!isLoaded) {
+        return <div>Loading...</div>;
+    }
 
     return (
         <div className="p-8 bg-white">
@@ -208,12 +269,23 @@ export function ProductionReport() {
             </div>
 
             {/* Print Button */}
-            <Button
-                onClick={() => window.print()}
-                className="mt-8 print:hidden"
-            >
-                Print Report
-            </Button>
+            <div className="mt-8 space-x-4 print:hidden">
+                <Button onClick={() => window.print()} className="space-x-2">
+                    <Printer className="w-4 h-4" />
+                    <span>Print Report</span>
+                </Button>
+                <Button
+                    onClick={handleDownloadPDF}
+                    disabled={isGenerating}
+                    variant="outline"
+                    className="space-x-2"
+                >
+                    <Download className="w-4 h-4" />
+                    <span>
+                        {isGenerating ? "Generating..." : "Download PDF"}
+                    </span>
+                </Button>
+            </div>
         </div>
     );
 }
