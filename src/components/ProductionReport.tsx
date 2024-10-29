@@ -47,8 +47,8 @@ export function ProductionReport() {
     }, [devices, selectedDevices, startDate, endDate]);
 
     return (
-        <div className="min-h-screen p-8 bg-white">
-            {/* Filters - hidden when printing */}
+        <div className="p-8 bg-white">
+            {/* Filters */}
             <div className="mb-8 print:hidden">
                 <Card>
                     <CardHeader>
@@ -85,7 +85,7 @@ export function ProductionReport() {
                             <label className="block text-sm font-medium mb-2">
                                 Devices
                             </label>
-                            <div className="flex gap-4">
+                            <div className="flex flex-wrap gap-4">
                                 {devices.map((device) => (
                                     <label
                                         key={device}
@@ -121,87 +121,91 @@ export function ProductionReport() {
                 </Card>
             </div>
 
-            {/* Report Pages */}
-            {reports.map(({ device, summary }, index) => (
-                <div
-                    key={device}
-                    className={`page-container ${
-                        index > 0 ? "report-page" : ""
-                    }`}
-                >
-                    <Card className="h-full">
-                        <CardHeader className="pb-4 border-b">
-                            <CardTitle>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xl font-bold">
-                                        {device} Production Report
-                                    </span>
-                                    <span className="text-sm text-muted-foreground">
-                                        {format(
-                                            new Date(startDate),
-                                            "MMM d, yyyy"
-                                        )}{" "}
-                                        -
-                                        {format(
-                                            new Date(endDate),
-                                            "MMM d, yyyy"
+            {/* Report Pages Container */}
+            <div className="print:p-0 print:m-0">
+                {reports.map(({ device, summary }, index) => (
+                    <div
+                        key={device}
+                        className={`print:w-[8.5in] print:h-[11in] print:m-0 print:p-8 ${
+                            index < reports.length - 1
+                                ? "page-break-after-always"
+                                : ""
+                        }`}
+                    >
+                        <Card className="h-full shadow-none print:shadow-none">
+                            <CardHeader className="pb-4 border-b">
+                                <CardTitle>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xl font-bold">
+                                            {device} Production Report
+                                        </span>
+                                        <span className="text-sm text-muted-foreground">
+                                            {format(
+                                                new Date(startDate),
+                                                "MMM d, yyyy"
+                                            )}{" "}
+                                            -{" "}
+                                            {format(
+                                                new Date(endDate),
+                                                "MMM d, yyyy"
+                                            )}
+                                        </span>
+                                    </div>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-6">
+                                <table className="w-full border-collapse">
+                                    <thead>
+                                        <tr className="bg-muted/50">
+                                            <th className="border px-4 py-2 text-left font-medium">
+                                                Process State
+                                            </th>
+                                            <th className="border px-4 py-2 text-right font-medium">
+                                                Good Count
+                                            </th>
+                                            <th className="border px-4 py-2 text-right font-medium">
+                                                Reject Count
+                                            </th>
+                                            <th className="border px-4 py-2 text-right font-medium">
+                                                Duration (hrs)
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {Object.entries(summary).map(
+                                            ([state, data], i) => (
+                                                <tr
+                                                    key={state}
+                                                    className="even:bg-muted/20 print:even:bg-gray-100"
+                                                >
+                                                    <td className="border px-4 py-2">
+                                                        {state}
+                                                    </td>
+                                                    <td className="border px-4 py-2 text-right">
+                                                        {Math.round(
+                                                            data.good
+                                                        ).toLocaleString()}
+                                                    </td>
+                                                    <td className="border px-4 py-2 text-right">
+                                                        {Math.round(
+                                                            data.reject
+                                                        ).toLocaleString()}
+                                                    </td>
+                                                    <td className="border px-4 py-2 text-right">
+                                                        {(
+                                                            data.duration / 3600
+                                                        ).toFixed(2)}
+                                                    </td>
+                                                </tr>
+                                            )
                                         )}
-                                    </span>
-                                </div>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            <table className="w-full border-collapse">
-                                <thead>
-                                    <tr className="bg-muted/50">
-                                        <th className="border px-4 py-2 text-left font-medium">
-                                            Process State
-                                        </th>
-                                        <th className="border px-4 py-2 text-right font-medium">
-                                            Good Count
-                                        </th>
-                                        <th className="border px-4 py-2 text-right font-medium">
-                                            Reject Count
-                                        </th>
-                                        <th className="border px-4 py-2 text-right font-medium">
-                                            Duration (hrs)
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {Object.entries(summary).map(
-                                        ([state, data]) => (
-                                            <tr
-                                                key={state}
-                                                className="even:bg-muted/20"
-                                            >
-                                                <td className="border px-4 py-2">
-                                                    {state}
-                                                </td>
-                                                <td className="border px-4 py-2 text-right">
-                                                    {Math.round(
-                                                        data.good
-                                                    ).toLocaleString()}
-                                                </td>
-                                                <td className="border px-4 py-2 text-right">
-                                                    {Math.round(
-                                                        data.reject
-                                                    ).toLocaleString()}
-                                                </td>
-                                                <td className="border px-4 py-2 text-right">
-                                                    {(
-                                                        data.duration / 3600
-                                                    ).toFixed(2)}
-                                                </td>
-                                            </tr>
-                                        )
-                                    )}
-                                </tbody>
-                            </table>
-                        </CardContent>
-                    </Card>
-                </div>
-            ))}
+                                    </tbody>
+                                </table>
+                            </CardContent>
+                        </Card>
+                    </div>
+                ))}
+            </div>
 
             {/* Print Button */}
             <Button

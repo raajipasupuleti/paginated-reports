@@ -78,28 +78,7 @@
 /* Print styles */
 @layer utilities {
     @media print {
-        .page-container {
-            width: 8.5in;
-            min-height: 11in;
-            margin: 0;
-            padding: 0.5in;
-            page-break-after: always;
-        }
-
-        .report-page {
-            break-before: page;
-        }
-
-        .print-hidden {
-            display: none !important;
-        }
-
-        /* Force background printing */
-        * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-
+        /* Reset all margins and padding */
         @page {
             size: letter;
             margin: 0;
@@ -107,12 +86,50 @@
 
         body {
             margin: 0;
+            background: white;
         }
 
-        .table-row-alt {
-            background-color: #f8f9fa !important;
+        /* Hide non-printable elements */
+        .print\:hidden {
+            display: none !important;
+        }
+
+        /* Force background colors and images to print */
+        * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+        }
+
+        /* Page break settings */
+        .page-break-after-always {
+            page-break-after: always;
+        }
+
+        /* Table styles */
+        .print\:even\:bg-gray-100 {
+            background-color: #f7f7f7 !important;
+        }
+
+        /* Card styles for print */
+        .print\:shadow-none {
+            box-shadow: none !important;
+        }
+
+        /* Page dimensions */
+        .print\:w-\[8\.5in\] {
+            width: 8.5in !important;
+        }
+
+        .print\:h-\[11in\] {
+            height: 11in !important;
+        }
+
+        .print\:m-0 {
+            margin: 0 !important;
+        }
+
+        .print\:p-8 {
+            padding: 2rem !important;
         }
     }
 }
